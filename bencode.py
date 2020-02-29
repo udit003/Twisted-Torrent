@@ -286,3 +286,11 @@ def decode(data):
 		return decode_functions[ben_type(data)](data)
 	except KeyError:
 		raise BencodeError("Decode", "Unknown data type", data)
+
+
+############################
+
+
+if __name__ == '__main__':
+	torrent_file = open("")
+

@@ -14,8 +14,14 @@ from util import collapse, slice
 from bencode import decode, encode
 
 CLIENT_NAME = "pytorrent"
-CLIENT_ID = "PY"
+CLIENT_ID =  "PY"
 CLIENT_VERSION = "0001"
+
+
+message_id_to_type = {'00':'handshake','05':'bitfield','06':'request','07':'piece','04':'have','02':'interested','01':'unchoking','10':'choking','03':'not_interested'}	
+
+
+
 
 def make_info_dict(file):
 	""" Returns the info dictionary for a torrent file. """
@@ -23,7 +29,7 @@ def make_info_dict(file):
 	with open(file) as f:
 		contents = f.read()
 
-	piece_length = 524288	# TODO: This should change dependent on file size
+	piece_length = 1000000	# TODO: This should change dependent on file size
 
 	info = {}
 
@@ -35,7 +41,7 @@ def make_info_dict(file):
 	# Generate the pieces
 	pieces = slice(contents, piece_length)
 	pieces = [ sha1(p).digest() for p in pieces ]
-	info["pieces"] = collapse(pieces)
+	info["pieces"] = ''.join([p for p in pieces])
 
 	return info
 
@@ -86,6 +92,11 @@ def read_torrent_file(torrent_file):
 	with open(torrent_file) as file:
 		return decode(file.read())
 
+
+"""                 //////////////////////////////////////////                    """
+
+
+
 def generate_peer_id():
 	""" Returns a 20-byte peer id. """
 
@@ -97,24 +108,8 @@ def generate_peer_id():
 
 	return "-" + CLIENT_ID + CLIENT_VERSION + "-" + random_string
 
-def make_tracker_request(info, peer_id, tracker_url):
-	""" Given a torrent info, and tracker_url, returns the tracker
-	response. """
 
-	# Generate a tracker GET request.
-	payload = {"info_hash" : info,
-			"peer_id" : peer_id,
-			"port" : 6881,
-			"uploaded" : 0,
-			"downloaded" : 0,
-			"left" : 1000,
-			"compact" : 1}
-	payload = urlencode(payload)
-
-	# Send the request
-	response = urlopen(tracker_url + "?" + payload).read()
-
-	return decode(response)
+"""               ///////////////////////////////////////////                    """
 
 def decode_expanded_peers(peers):
 	""" Return a list of IPs and ports, given an expanded list of peers,
@@ -149,7 +144,7 @@ def generate_handshake(info_hash, peer_id):
 	len_id = str(len(protocol_id))
 	reserved = "00000000"
 
-	return len_id + protocol_id + reserved + info_hash + peer_id
+	return '00' + protocol_id + reserved + info_hash + peer_id
 
 def send_recv_handshake(handshake, host, port):
 	""" Sends a handshake, returns the data we get back. """
@@ -201,4 +196,16 @@ class Torrent():
 			self.running = False
 
 			self.tracker_loop.join()
+
+
+import sys
+
+
+if __name__ == '__main__':
+	torrent_file_name = sys.argv[1]
+	data_file_name = sys.argv[2]
+	tracker_id = sys.argv[3]
+	comments = sys.argv[4]
+	write_torrent_file(torrent_file_name,data_file_name,tracker_id,comments)
+
 
